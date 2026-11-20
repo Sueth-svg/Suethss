@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { ArrowRight, ArrowLeft, Check, Command, Copy, Link2, LogIn, MonitorUp, Plus, Radio, ShieldCheck, Users, Video, VideoOff, Volume2, XCircle } from 'lucide-react';
 
 type Role = 'host' | 'viewer';
-type Signal = { type: string; [key: string]: any };
+type Signal = { type: string;[key: string]: any };
 const SIGNAL_URL = import.meta.env.VITE_SIGNAL_URL || 'ws://localhost:3001';
 const rtcConfig: RTCConfiguration = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] };
 const makeCode = () => Math.random().toString(36).slice(2, 8).toUpperCase();
@@ -27,6 +27,19 @@ export default function App() {
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const pendingIceRef = useRef<RTCIceCandidateInit[]>([]);
   const pendingHostIceRef = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
+
+  useEffect(() => {
+    const video = localVideoRef.current;
+    const stream = localStreamRef.current;
+
+    if (sharing && video && stream) {
+      video.srcObject = stream;
+      void video.play().catch((error) => {
+        console.error("Erro ao reproduzir prévia:", error);
+      });
+    }
+  }, [sharing]);
+
   const roomUrl = room ? `${window.location.origin}${window.location.pathname}?sala=${room}` : '';
 
   useEffect(() => {
@@ -70,7 +83,7 @@ export default function App() {
           remoteVideoRef.current.srcObject = stream;
           setHasVideo(stream.getVideoTracks().length > 0);
           setHasAudio(stream.getAudioTracks().length > 0);
-          void remoteVideoRef.current.play().catch(() => {});
+          void remoteVideoRef.current.play().catch(() => { });
         }
       };
     }
@@ -134,7 +147,7 @@ export default function App() {
     try {
       const stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 30 }, audio: true });
       localStreamRef.current = stream;
-      if (localVideoRef.current) { localVideoRef.current.srcObject = stream; void localVideoRef.current.play().catch(() => {}); }
+      if (localVideoRef.current) { localVideoRef.current.srcObject = stream; void localVideoRef.current.play().catch(() => { }); }
       setSharing(true); setHasVideo(true); setHasAudio(stream.getAudioTracks().length > 0);
       stream.getVideoTracks()[0].addEventListener('ended', () => stopShare());
       setStatus('Sua tela está sendo transmitida.');
@@ -176,24 +189,24 @@ export default function App() {
   }
 
   if (room) return <div className="live-shell">
-    <header className="live-nav"><a className="live-brand" href="#" onClick={e => {e.preventDefault(); leaveRoom();}}><span><Command size={18}/></span> NOME DO PROJETO</a><button className="ghost" onClick={leaveRoom}><ArrowLeft size={16}/> Sair da sala</button></header>
+    <header className="live-nav"><a className="live-brand" href="#" onClick={e => { e.preventDefault(); leaveRoom(); }}><span><Command size={18} /></span> NOME DO PROJETO</a><button className="ghost" onClick={leaveRoom}><ArrowLeft size={16} /> Sair da sala</button></header>
     <main className="live-main">
-      <div className="live-heading"><div><div className="live-kicker"><i/> SALA PRIVADA · {room}</div><h1>{role === 'host' ? 'Sua sala está pronta.' : 'Você entrou na sala.'}</h1><p>{role === 'host' ? 'Compartilhe o convite e inicie sua transmissão.' : 'Aguarde o anfitrião compartilhar a tela.'}</p></div><div className={`connection ${connected ? 'online' : ''}`}><i/>{connected ? 'Conectado' : 'Conectando'}</div></div>
+      <div className="live-heading"><div><div className="live-kicker"><i /> SALA PRIVADA · {room}</div><h1>{role === 'host' ? 'Sua sala está pronta.' : 'Você entrou na sala.'}</h1><p>{role === 'host' ? 'Compartilhe o convite e inicie sua transmissão.' : 'Aguarde o anfitrião compartilhar a tela.'}</p></div><div className={`connection ${connected ? 'online' : ''}`}><i />{connected ? 'Conectado' : 'Conectando'}</div></div>
       {role === 'host' ? <section className="host-layout">
-        <div className="screen-card"><div className="screen-top"><span><Radio size={15}/> TRANSMISSÃO</span><span className={sharing ? 'live-tag' : 'idle-tag'}>{sharing ? 'AO VIVO' : 'AGUARDANDO'}</span></div>
-          <div className="screen-stage">{sharing ? <video ref={localVideoRef} autoPlay muted playsInline/> : <div className="screen-placeholder"><MonitorUp size={46}/><b>Sua tela aparecerá aqui</b><small>Quando estiver pronto, clique em iniciar transmissão.</small></div>}</div>
-          <div className="screen-controls">{sharing ? <button className="danger" onClick={stopShare}><XCircle size={17}/> Parar transmissão</button> : <button className="primary-live" onClick={startShare} disabled={!connected}><MonitorUp size={17}/> Compartilhar minha tela</button>}<span><Users size={15}/> {viewerCount} participante(s)</span></div>
+        <div className="screen-card"><div className="screen-top"><span><Radio size={15} /> TRANSMISSÃO</span><span className={sharing ? 'live-tag' : 'idle-tag'}>{sharing ? 'AO VIVO' : 'AGUARDANDO'}</span></div>
+          <div className="screen-stage">{sharing ? <video ref={localVideoRef} autoPlay muted playsInline /> : <div className="screen-placeholder"><MonitorUp size={46} /><b>Sua tela aparecerá aqui</b><small>Quando estiver pronto, clique em iniciar transmissão.</small></div>}</div>
+          <div className="screen-controls">{sharing ? <button className="danger" onClick={stopShare}><XCircle size={17} /> Parar transmissão</button> : <button className="primary-live" onClick={startShare} disabled={!connected}><MonitorUp size={17} /> Compartilhar minha tela</button>}<span><Users size={15} /> {viewerCount} participante(s)</span></div>
         </div>
-        <aside className="invite-card"><div className="invite-icon"><Link2 size={20}/></div><h2>Convide alguém</h2><p>Envie o link abaixo. A pessoa entra direto, sem login.</p><label>LINK DA SALA</label><div className="invite-link">{roomUrl}</div><button className="primary-live full" onClick={copyInvite}><Copy size={16}/>{copied ? 'Link copiado!' : 'Copiar convite'}</button><div className="invite-code-label">OU COMPARTILHE O CÓDIGO</div><div className="invite-code">{room}</div><div className="hint"><ShieldCheck size={15}/> Compartilhe este link apenas com quem deve assistir.</div></aside>
-      </section> : <section className="viewer-card"><div className="viewer-stage">{hasVideo ? <video ref={remoteVideoRef} autoPlay playsInline controls/> : <div className="screen-placeholder"><MonitorUp size={48}/><b>{connected ? 'Aguardando compartilhamento...' : 'Conectando à sala...'}</b><small>Quando o anfitrião iniciar, a tela aparecerá aqui.</small></div>}</div><div className="viewer-footer"><span><Users size={15}/> Você está assistindo</span><span>{hasAudio ? <><Volume2 size={15}/> Áudio disponível</> : <><Volume2 size={15}/> Sem áudio recebido</>}</span></div></section>}
+        <aside className="invite-card"><div className="invite-icon"><Link2 size={20} /></div><h2>Convide alguém</h2><p>Envie o link abaixo. A pessoa entra direto, sem login.</p><label>LINK DA SALA</label><div className="invite-link">{roomUrl}</div><button className="primary-live full" onClick={copyInvite}><Copy size={16} />{copied ? 'Link copiado!' : 'Copiar convite'}</button><div className="invite-code-label">OU COMPARTILHE O CÓDIGO</div><div className="invite-code">{room}</div><div className="hint"><ShieldCheck size={15} /> Compartilhe este link apenas com quem deve assistir.</div></aside>
+      </section> : <section className="viewer-card"><div className="viewer-stage">{hasVideo ? <video ref={remoteVideoRef} autoPlay playsInline controls /> : <div className="screen-placeholder"><MonitorUp size={48} /><b>{connected ? 'Aguardando compartilhamento...' : 'Conectando à sala...'}</b><small>Quando o anfitrião iniciar, a tela aparecerá aqui.</small></div>}</div><div className="viewer-footer"><span><Users size={15} /> Você está assistindo</span><span>{hasAudio ? <><Volume2 size={15} /> Áudio disponível</> : <><Volume2 size={15} /> Sem áudio recebido</>}</span></div></section>}
       {status && <div className="status-line">{status}</div>}{error && <div className="error-line">{error}</div>}
       <p className="browser-note">A captura de tela funciona em navegadores modernos e exige permissão do usuário. Para compartilhar áudio do sistema, a opção depende do navegador e da fonte escolhida.</p>
     </main>
   </div>;
 
-  return <div className="live-home"><header className="live-nav"><a className="live-brand" href="#"><span><Command size={18}/></span> NOME DO PROJETO</a><a className="ghost" href="#acesso">Entrar em uma sala <ArrowRight size={15}/></a></header>
-    <main className="home-main"><div className="home-copy"><div className="live-kicker"><i/> COMPARTILHAMENTO DE TELA EM TEMPO REAL</div><h1>Sua tela.<br/><em>Em qualquer lugar.</em></h1><p>Crie uma sala, compartilhe o convite e transmita sua tela diretamente pelo navegador. Sem login e sem instalação.</p><a className="primary-live" href="#acesso">Começar agora <ArrowRight size={17}/></a><div className="home-points"><span><Check size={15}/> Sem cadastro</span><span><Check size={15}/> Link instantâneo</span><span><Check size={15}/> No navegador</span></div></div><div className="home-art"><div className="art-glow"/><div className="art-window"><div><i/><i/><i/><b>SESSÃO AO VIVO</b></div><MonitorUp size={65}/><strong>Compartilhe sua tela</strong><small>Conecte-se em segundos</small><div className="art-bars"><i/><i/><i/><i/><i/><i/><i/></div></div><div className="art-chip"><Radio size={15}/> Transmissão em tempo real</div></div></main>
-    <section className="access-area" id="acesso"><div className="access-heading"><div className="live-kicker"><i/> ACESSO RÁPIDO</div><h2>Por onde vamos começar?</h2><p>Crie sua própria sala ou entre com o código que recebeu.</p></div><div className="access-grid"><article><div className="access-symbol"><Plus/></div><h3>Criar uma sala</h3><p>Gere um convite exclusivo e seja o anfitrião da transmissão.</p><button className="primary-live full" onClick={createRoom}>Criar sala <ArrowRight size={16}/></button></article><article><div className="access-symbol"><LogIn/></div><h3>Entrar em uma sala</h3><p>Digite o código de seis caracteres enviado pelo anfitrião.</p><form onSubmit={joinRoom}><input value={joinCode} onChange={e => setJoinCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6))} placeholder="EX: A8K2PZ" maxLength={6}/><button className="primary-live" type="submit">Entrar <ArrowRight size={16}/></button></form></article></div>{error && <div className="error-line">{error}</div>}</section>
+  return <div className="live-home"><header className="live-nav"><a className="live-brand" href="#"><span><Command size={18} /></span> NOME DO PROJETO</a><a className="ghost" href="#acesso">Entrar em uma sala <ArrowRight size={15} /></a></header>
+    <main className="home-main"><div className="home-copy"><div className="live-kicker"><i /> COMPARTILHAMENTO DE TELA EM TEMPO REAL</div><h1>Sua tela.<br /><em>Em qualquer lugar.</em></h1><p>Crie uma sala, compartilhe o convite e transmita sua tela diretamente pelo navegador. Sem login e sem instalação.</p><a className="primary-live" href="#acesso">Começar agora <ArrowRight size={17} /></a><div className="home-points"><span><Check size={15} /> Sem cadastro</span><span><Check size={15} /> Link instantâneo</span><span><Check size={15} /> No navegador</span></div></div><div className="home-art"><div className="art-glow" /><div className="art-window"><div><i /><i /><i /><b>SESSÃO AO VIVO</b></div><MonitorUp size={65} /><strong>Compartilhe sua tela</strong><small>Conecte-se em segundos</small><div className="art-bars"><i /><i /><i /><i /><i /><i /><i /></div></div><div className="art-chip"><Radio size={15} /> Transmissão em tempo real</div></div></main>
+    <section className="access-area" id="acesso"><div className="access-heading"><div className="live-kicker"><i /> ACESSO RÁPIDO</div><h2>Por onde vamos começar?</h2><p>Crie sua própria sala ou entre com o código que recebeu.</p></div><div className="access-grid"><article><div className="access-symbol"><Plus /></div><h3>Criar uma sala</h3><p>Gere um convite exclusivo e seja o anfitrião da transmissão.</p><button className="primary-live full" onClick={createRoom}>Criar sala <ArrowRight size={16} /></button></article><article><div className="access-symbol"><LogIn /></div><h3>Entrar em uma sala</h3><p>Digite o código de seis caracteres enviado pelo anfitrião.</p><form onSubmit={joinRoom}><input value={joinCode} onChange={e => setJoinCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6))} placeholder="EX: A8K2PZ" maxLength={6} /><button className="primary-live" type="submit">Entrar <ArrowRight size={16} /></button></form></article></div>{error && <div className="error-line">{error}</div>}</section>
     <footer className="live-footer"><span>© 2026 · NOME DO PROJETO</span><span>Compartilhe com liberdade.</span></footer>
   </div>;
 }
