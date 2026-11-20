@@ -98,9 +98,15 @@ export default function App() {
       if (msg.type === 'error') { setError(msg.message || 'Não foi possível entrar na sala.'); setStatus(''); }
       if (msg.type === 'viewer-joined' && role === 'host') {
         const pc = createPeer(msg.peerId);
-        const offer = await pc.createOffer(); await pc.setLocalDescription(offer);
-        send({ type: 'offer', targetId: msg.peerId, description: pc.localDescription });
         setViewerCount(pcsRef.current.size);
+
+        // Só negocia imediatamente se o anfitrião já estiver transmitindo.
+        // Caso contrário, startShare fará a primeira oferta após adicionar as faixas.
+        if (localStreamRef.current) {
+          const offer = await pc.createOffer();
+          await pc.setLocalDescription(offer);
+          send({ type: 'offer', targetId: msg.peerId, description: pc.localDescription });
+        }
       }
       if (msg.type === 'offer' && role === 'viewer') {
         const pc = pcsRef.current.get(msg.fromId) || createPeer(msg.fromId);
@@ -145,8 +151,13 @@ export default function App() {
       setSharing(true); setHasVideo(true); setHasAudio(stream.getAudioTracks().length > 0);
       stream.getVideoTracks()[0].addEventListener('ended', () => stopShare());
       setStatus('Sua tela está sendo transmitida.');
-      pcsRef.current.forEach(pc => stream.getTracks().forEach(track => pc.addTrack(track, stream)));
-      // Peers that joined before sharing need a fresh negotiation with the new media tracks.
+      pcsRef.current.forEach(pc => {
+        const existingTrackIds = new Set(pc.getSenders().map(sender => sender.track?.id).filter(Boolean));
+        stream.getTracks().forEach(track => {
+          if (!existingTrackIds.has(track.id)) pc.addTrack(track, stream);
+        });
+      });
+      // Negocia a transmissão com todos os convidados que já estão na sala.
       for (const [peerId, pc] of pcsRef.current.entries()) {
         const offer = await pc.createOffer(); await pc.setLocalDescription(offer);
         send({ type: 'offer', targetId: peerId, description: pc.localDescription });
