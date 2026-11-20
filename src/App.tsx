@@ -194,7 +194,26 @@ export default function App() {
       <div className="live-heading"><div><div className="live-kicker"><i /> SALA PRIVADA · {room}</div><h1>{role === 'host' ? 'Sua sala está pronta.' : 'Você entrou na sala.'}</h1><p>{role === 'host' ? 'Compartilhe o convite e inicie sua transmissão.' : 'Aguarde o anfitrião compartilhar a tela.'}</p></div><div className={`connection ${connected ? 'online' : ''}`}><i />{connected ? 'Conectado' : 'Conectando'}</div></div>
       {role === 'host' ? <section className="host-layout">
         <div className="screen-card"><div className="screen-top"><span><Radio size={15} /> TRANSMISSÃO</span><span className={sharing ? 'live-tag' : 'idle-tag'}>{sharing ? 'AO VIVO' : 'AGUARDANDO'}</span></div>
-          <div className="screen-stage">{sharing ? <video ref={localVideoRef} autoPlay muted playsInline /> : <div className="screen-placeholder"><MonitorUp size={46} /><b>Sua tela aparecerá aqui</b><small>Quando estiver pronto, clique em iniciar transmissão.</small></div>}</div>
+          <div className="screen-stage">{sharing ?
+            <video
+              ref={(video) => {
+                localVideoRef.current = video;
+
+                const stream = localStreamRef.current;
+
+                if (video && stream) {
+                  video.srcObject = stream;
+
+                  void video.play().catch((error) => {
+                    console.error("Erro ao reproduzir transmissão:", error);
+                  });
+                }
+              }}
+              autoPlay
+              muted
+              playsInline
+            />
+            : <div className="screen-placeholder"><MonitorUp size={46} /><b>Sua tela aparecerá aqui</b><small>Quando estiver pronto, clique em iniciar transmissão.</small></div>}</div>
           <div className="screen-controls">{sharing ? <button className="danger" onClick={stopShare}><XCircle size={17} /> Parar transmissão</button> : <button className="primary-live" onClick={startShare} disabled={!connected}><MonitorUp size={17} /> Compartilhar minha tela</button>}<span><Users size={15} /> {viewerCount} participante(s)</span></div>
         </div>
         <aside className="invite-card"><div className="invite-icon"><Link2 size={20} /></div><h2>Convide alguém</h2><p>Envie o link abaixo. A pessoa entra direto, sem login.</p><label>LINK DA SALA</label><div className="invite-link">{roomUrl}</div><button className="primary-live full" onClick={copyInvite}><Copy size={16} />{copied ? 'Link copiado!' : 'Copiar convite'}</button><div className="invite-code-label">OU COMPARTILHE O CÓDIGO</div><div className="invite-code">{room}</div><div className="hint"><ShieldCheck size={15} /> Compartilhe este link apenas com quem deve assistir.</div></aside>
